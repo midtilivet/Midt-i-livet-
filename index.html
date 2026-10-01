@@ -57,6 +57,7 @@ header.top{display:flex;align-items:center;justify-content:space-between}
 .logo{width:62px;height:48px;flex:none;color:var(--ink);--lw:.5}
 .welcome-logo{width:200px;height:154px;display:block;margin:4px auto 12px;color:var(--ink);--lw:0}
 .banner{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--beige);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-top:14px;font-size:16px}
+.banner.demo{background:var(--sage);margin:0 0 6px}
 .banner .btn{min-height:42px;padding:6px 16px;font-size:15px;flex:none}
 .steps{display:flex;justify-content:center;gap:8px;margin:14px 0 4px}
 .steps i{width:9px;height:9px;border-radius:50%;border:1.3px solid var(--ink)}
@@ -173,10 +174,28 @@ nav.tabs button.on svg{stroke:var(--blush-d)}
 .modal h3{font-family:var(--serif);font-size:28px;font-weight:600;margin:0 0 6px;text-align:center}
 .modal p{text-align:center}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.ptxt{display:none}
 @media print{
-  body{background:#fff}
-  nav.tabs,header.top,.no-print,.toast{display:none!important}
-  .wrap{padding:0;max-width:none}.page{box-shadow:none}
+  /* alltid lyst og blekkvennlig, også når telefonen står i mørk modus */
+  :root,:root[data-theme],:root:not([data-theme="light"]){--desk:#FFFFFF !important;--paper:#FFFFFF !important;--ink:#3A302B !important;--muted:#6F645C !important;--rule:#D9CEC2 !important;--border:#B9ACA0 !important;
+    --blush:#F3DDD6 !important;--blush-d:#B5776C !important;--beige:#EFE2D0 !important;--beige-d:#A5825B !important;--taupe:#E2DAD1 !important;--taupe-d:#7B6C60 !important;
+    --sage:#CDD6C3 !important;--sage-d:#5C7354 !important;--mauve:#E6D4CF !important;--mauve-d:#976C70 !important;--peach:#F6E6D5 !important;--peach-d:#B98356 !important;
+    --forest:#3F5A47 !important;--on-forest:#F4EFE6 !important;--olive:#DFE0CD !important;--olive-d:#6B6E45 !important;--clay:#EEDDCC !important;--clay-d:#99694A !important;
+    color-scheme:light;padding:0}
+  html,body{background:#fff!important;color:#3A302B!important}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  nav.tabs,header.top,.no-print,.toast,.modal,.banner{display:none!important}
+  .wrap{padding:0;max-width:none}.page{box-shadow:none;border-radius:0;padding:0;background:#fff!important}
+  .box{background:#fff!important;border-color:#B9ACA0!important;break-inside:avoid;page-break-inside:avoid}
+  .box > .hd{background:var(--c)!important;color:#3A302B!important}
+  .box.dark{color:#3A302B!important}
+  .box.dark > .hd{background:#E2DAD1!important;border-color:#B9ACA0!important}
+  .from-weeks li{border-color:#B9ACA0!important}
+  textarea,input[type=date],input[type=text]{display:none!important}
+  .ptxt{display:block;white-space:pre-wrap;font-size:16px;line-height:30px;padding:0 4px;color:#3A302B}
+  .ptxt.empty{height:92px;background-image:repeating-linear-gradient(to bottom,transparent 0 29px,#B9ACA0 29px 30px)}
+  .title h1{font-size:34px}
+  .foot{color:#6F645C!important}
 }
 </style>
 </head>
@@ -268,7 +287,11 @@ const box=(c,t,inner,cls="")=>`<section class="box c-${c} ${cls}">${t?`<div clas
 const title=(small,big,sub)=>`<div class="title">${small?`<div class="orn">${small}</div>`:""}<h1>${big}</h1>${sub?`<p class="sub">${sub}</p>`:""}</div>`;
 
 function renderTabs(){document.getElementById("tabs").innerHTML=TABS.map(([k,l])=>`<button data-act="tab" data-v="${k}" class="${U.view===k?"on":""}" ${U.view===k?'aria-current="page"':""}>${ICONS[k]}<span>${l}</span></button>`).join("");}
-function render(){renderTabs();document.getElementById("view").innerHTML=({today:vToday,week:vWeek,life:vLife,overview:vOverview,doctor:vDoctor})[U.view]();if(U.view==="overview")drawAfter();}
+function twins(){document.querySelectorAll("#view textarea,#view input[type=date]").forEach(el=>{const d=document.createElement("div");el.after(d);syncTwin(el);});}
+function syncTwin(el){const d=el.nextElementSibling;if(!d)return;let v=el.value||"";
+  if(el.type==="date"&&v){const p=parse(v);v=cap(p.toLocaleDateString("nb-NO",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));}
+  d.className="ptxt"+(v.trim()?"":" empty");d.textContent=v;}
+function render(){renderTabs();document.getElementById("view").innerHTML=(S.meta.demo?`<div class="banner demo no-print"><span><b>Du ser på eksempeldata.</b> Ingenting her er ditt ennå.</span><button class="btn" data-act="cleardemo">Fjern og kom i gang</button></div>`:"")+({today:vToday,week:vWeek,life:vLife,overview:vOverview,doctor:vDoctor})[U.view]();if(U.view==="overview")drawAfter();twins();}
 
 /* I DAG */
 function dayData(k){return S.days[k]||(S.days[k]={});}
@@ -286,7 +309,7 @@ function vToday(){
   const work=d.noWork?"":scale("work",d.work);
   const nDays=Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).length;
   const lb=S.meta.lastBackup?parse(S.meta.lastBackup):null;
-  const needBackup=nDays>=7&&(!lb||(today()-lb)/864e5>30);
+  const needBackup=!S.meta.demo&&nDays>=7&&(!lb||(today()-lb)/864e5>30);
   return `${title("Daglig logg",isToday?"I dag":"Tilbake",fmtLong(U.day))}
   ${!STORE_OK?`<div class="banner no-print" style="background:var(--blush)"><span>Denne visningen kan ikke lagre. Det du fyller ut, forsvinner når du lukker appen. Åpne den i Safari eller Chrome fra en nettadresse i stedet.</span></div>`:""}
   ${STORE_OK&&needBackup?`<div class="banner no-print"><span>${lb?"Det er over en måned siden forrige sikkerhetskopi.":"Du har ikke tatt sikkerhetskopi ennå."}</span><button class="btn" data-act="backup">Ta kopi nå</button></div>`:""}
@@ -476,7 +499,7 @@ function settings(){const th=document.documentElement.getAttribute("data-theme")
   <div class="seg">${[["auto","Automatisk"],["light","Lyst"],["dark","Mørkt"]].map(([k,l])=>`<button class="${th===k?"on":""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
   <p class="set-h">Mer</p>
   <div class="row"><button class="btn ghost" data-act="howto">Legg på hjemskjermen</button><button class="btn ghost" data-act="welcome">Om appen</button></div>
-  <div class="row"><button class="btn ghost" data-act="demo">Vis eksempeldata</button><button class="btn ghost" data-act="askwipe">Slett alt</button></div>
+  <div class="row">${S.meta.demo?`<button class="btn ghost" data-act="cleardemo">Fjern eksempeldata</button>`:`<button class="btn ghost" data-act="demo">Vis eksempeldata</button>`}<button class="btn ghost" data-act="askwipe">Slett alt</button></div>
   <div class="row"><button class="btn" data-act="close">Ferdig</button></div>`);}
 function backup(){
   const txt=JSON.stringify(S);let ok=false;
@@ -507,14 +530,22 @@ const WSTEPS=[
 function welcome(i){i=i||0;const[t,x]=WSTEPS[i];const last=i===WSTEPS.length-1;
   openModal(`${i===0?`<svg class="welcome-logo" viewBox="0 0 104 80" aria-hidden="true"><use href="#mil-logo" width="104" height="80"/></svg>`:""}<h3>${t}</h3><p class="hint" style="text-align:center;font-size:17px;color:var(--ink)">${x}</p>
   <div class="steps">${WSTEPS.map((_,j)=>`<i class="${j===i?"on":""}"></i>`).join("")}</div>
-  <div class="row">${last?`<button class="btn ghost" data-act="howto">Vis meg hvordan</button><button class="btn" data-act="startapp">Kom i gang</button>`:`<button class="btn ghost" data-act="startapp">Hopp over</button><button class="btn" data-act="wnext" data-v="${i+1}">Neste</button>`}</div>`);}
+  <div class="row">${last?`<button class="btn ghost" data-act="howto">Vis meg hvordan</button><button class="btn" data-act="startapp">Kom i gang</button></div><p class="hint" style="text-align:center;margin-top:18px">Vil du se hvordan appen ser ut etter noen uker først?</p><div class="row" style="margin-top:6px"><button class="btn ghost" data-act="demo">Se med eksempeldata</button>`:`<button class="btn ghost" data-act="startapp">Hopp over</button><button class="btn" data-act="wnext" data-v="${i+1}">Neste</button>`}</div>`);}
 function howto(){openModal(`<h3>Legg på hjemskjermen</h3>
   <p class="set-h" style="margin-top:8px">iPhone</p><ol class="howto"><li>Åpne appen i Safari.</li><li>Trykk på delingsknappen, firkanten med pil opp.</li><li>Velg «Legg til på Hjem-skjerm».</li><li>Trykk «Legg til».</li></ol>
   <p class="set-h">Android</p><ol class="howto"><li>Åpne appen i Chrome.</li><li>Trykk på de tre prikkene øverst til høyre.</li><li>Velg «Legg til på startskjermen».</li></ol>
   <div class="row"><button class="btn" data-act="startapp">Ferdig</button></div>`);}
+async function clearDemo(){
+  const raw=await kget(KEY+".real");let d=null;try{d=raw?JSON.parse(raw):null;}catch(e){}
+  S=d||blank();normalize();delete S.meta.demo;save(true);kset(KEY+".real","");
+  closeModal();U.view="today";U.day=today();render();try{window.scrollTo(0,0);}catch(x){}
+  toast("Eksempeldata fjernet");
+  setTimeout(()=>{if(!U.view||U.view==="today")toast("Klar! Start med I dag");},1500);
+}
 function askWipe(){openModal(`<h3>Slette alt?</h3><p class="hint">Alle registreringer, notater og lister forsvinner fra denne enheten. Det kan ikke angres.</p><div class="row"><button class="btn danger" data-act="wipe">Slett alt</button><button class="btn ghost" data-act="close">Avbryt</button></div>`);}
 
-function demo(){
+async function demo(){
+  if(!S.meta.demo)await kset(KEY+".real",JSON.stringify(S));
   let seed=7;const r=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};const cl=(v,a,b)=>Math.max(a,Math.min(b,Math.round(v)));
   const nd=blank();
   for(let i=83;i>=1;i--){const dt=addDays(today(),-i);if(r()<.12)continue;const t=(83-i)/83,wd=(dt.getDay()+6)%7;
@@ -533,7 +564,7 @@ function demo(){
   nd.hobbies=[{t:"Morgenbad",done:true},{t:"Kurs i akvarell"},{t:"Lange turer i skogen"}];
   nd.work="Rolige morgener, færre sene møter, hjemmekontor etter dårlige netter.";
   nd.doctor={impact:"Søvnen. Når jeg sover dårlig, blir alt tyngre, også på jobb.",since:"Rundt ett år, verre det siste halvåret.",questions:["Kan søvnproblemene henge sammen med overgangsalderen?","Hvilke muligheter finnes for meg?","Når bør vi følge opp igjen?"],said:"",tryout:"",next:""};
-  S=nd;save(true);closeModal();U.view="overview";render();toast("Eksempeldata lastet inn");
+  nd.meta.demo=true;S=nd;save(true);kset(KEY+".welcomed","1");closeModal();U.view="overview";render();try{window.scrollTo(0,0);}catch(x){}toast("Eksempeldata lastet inn");
 }
 
 document.addEventListener("click",e=>{
@@ -562,6 +593,7 @@ document.addEventListener("click",e=>{
   if(a==="close"){closeModal();return;}
   if(a==="theme"){if(v==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",v);kset(KEY+".theme",v);settings();return;}
   if(a==="demo"){demo();return;}
+  if(a==="cleardemo"){clearDemo();return;}
   if(a==="backup"){backup();return;}
   if(a==="restore"){restore();return;}
   if(a==="doimport"){const t=document.getElementById("impText");if(t&&t.value.trim())doImport(t.value.trim());else toast("Velg en fil eller lim inn teksten først");return;}
@@ -576,7 +608,7 @@ document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();
   if(e.key==="Enter"&&e.target.id==="hobIn")document.querySelector('[data-act="hobadd"]').click();
   if(e.key==="Enter"&&e.target.id==="qIn")document.querySelector('[data-act="qadd"]').click();});
-function bind(e){const el=e.target;if(!el.dataset||!el.dataset.bind)return;const[col,key,f]=el.dataset.bind.split("|");
+function bind(e){const el=e.target;if(!el.dataset||!el.dataset.bind)return;syncTwin(el);const[col,key,f]=el.dataset.bind.split("|");
   if(col==="root")S[f]=el.value;else if(col==="doctor")S.doctor[f]=el.value;else{S[col][key]=S[col][key]||{};S[col][key][f]=el.value;}saveSoon();}
 document.addEventListener("change",e=>{if(e.target.id==="impFile"&&e.target.files&&e.target.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(e.target.files[0]);}});
 document.addEventListener("input",bind);document.addEventListener("change",bind);
