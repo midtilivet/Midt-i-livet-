@@ -193,7 +193,10 @@ nav.tabs button.on svg{stroke:var(--blush-d)}
   .from-weeks li{border-color:#B9ACA0!important}
   textarea,input[type=date],input[type=text]{display:none!important}
   .ptxt{display:block;white-space:pre-wrap;font-size:16px;line-height:30px;padding:0 4px;color:#3A302B}
-  .ptxt.empty{height:92px;background-image:repeating-linear-gradient(to bottom,transparent 0 29px,#B9ACA0 29px 30px)}
+  .ptxt.empty i{display:block;height:30px;border-bottom:1px solid #B9ACA0}
+  /* ingen gradienter i utskrift: iOS gjør gjennomsiktige gradienter svarte i PDF */
+  .title .orn::before,.title .orn::after{background:none!important;height:0;border-top:1px solid #3A302B;opacity:.6}
+  .lined{background-image:none!important}
   .title h1{font-size:34px}
   .foot{color:#6F645C!important}
 }
@@ -290,7 +293,7 @@ function renderTabs(){document.getElementById("tabs").innerHTML=TABS.map(([k,l])
 function twins(){document.querySelectorAll("#view textarea,#view input[type=date]").forEach(el=>{const d=document.createElement("div");el.after(d);syncTwin(el);});}
 function syncTwin(el){const d=el.nextElementSibling;if(!d)return;let v=el.value||"";
   if(el.type==="date"&&v){const p=parse(v);v=cap(p.toLocaleDateString("nb-NO",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));}
-  d.className="ptxt"+(v.trim()?"":" empty");d.textContent=v;}
+  const e=!v.trim();d.className="ptxt"+(e?" empty":"");if(e)d.innerHTML="<i></i><i></i><i></i>";else d.textContent=v;}
 function render(){renderTabs();document.getElementById("view").innerHTML=(S.meta.demo?`<div class="banner demo no-print"><span><b>Du ser på eksempeldata.</b> Ingenting her er ditt ennå.</span><button class="btn" data-act="cleardemo">Fjern og kom i gang</button></div>`:"")+({today:vToday,week:vWeek,life:vLife,overview:vOverview,doctor:vDoctor})[U.view]();if(U.view==="overview")drawAfter();twins();}
 
 /* I DAG */
@@ -500,7 +503,7 @@ function settings(){const th=document.documentElement.getAttribute("data-theme")
   <p class="set-h">Mer</p>
   <div class="row"><button class="btn ghost" data-act="howto">Legg på hjemskjermen</button><button class="btn ghost" data-act="welcome">Om appen</button></div>
   <div class="row">${S.meta.demo?`<button class="btn ghost" data-act="cleardemo">Fjern eksempeldata</button>`:`<button class="btn ghost" data-act="demo">Vis eksempeldata</button>`}<button class="btn ghost" data-act="askwipe">Slett alt</button></div>
-  <div class="row"><button class="btn" data-act="close">Ferdig</button></div>`);}
+  <div class="row"><button class="btn" data-act="close">Ferdig</button></div><p class="hint" style="text-align:center;font-size:13px">Versjon 1.4</p>`);}
 function backup(){
   const txt=JSON.stringify(S);let ok=false;
   try{const blob=new Blob([txt],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="midt-i-livet-kopi-"+iso(today())+".json";document.body.appendChild(a);a.click();a.remove();ok=true;}catch(e){}
