@@ -386,11 +386,14 @@ function vLife(){
 }
 
 /* OVERSIKT */
-function weeksBack(n){const a=[];let m=monday(today());for(let i=n-1;i>=0;i--)a.push(addDays(m,-7*i));return a;}
+function weeksAvail(){const f=Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).sort()[0];
+  return f?Math.round((monday(today())-monday(parse(f)))/(7*864e5))+1:1;}
+function weeksBack(n){n=Math.max(1,Math.min(n,weeksAvail()));const a=[];let m=monday(today());for(let i=n-1;i>=0;i--)a.push(addDays(m,-7*i));return a;}
 function vOverview(){
   const all=daysIn(addDays(today(),-(U.range*7-1)),U.range*7);
   const regs=all.filter(x=>x.d&&Object.keys(x.d).length);
-  const seg=`<div class="seg no-print" role="group" aria-label="Periode">${[4,8,12].map(n=>`<button class="${U.range===n?"on":""}" data-act="range" data-v="${n}">${n} uker</button>`).join("")}</div>`;
+  const av=weeksAvail(),opts=[4,8,12].filter((n,i,A)=>n<=av||(i>0&&A[i-1]<av)||(i===0));
+  const seg=av<=4?"":`<div class="seg no-print" role="group" aria-label="Periode">${opts.map(n=>`<button class="${U.range===n?"on":""}" data-act="range" data-v="${n}">${n} uker</button>`).join("")}</div>`;
   if(regs.length<3){
     return `${title("Mønstre","Oversikt","Grafene kommer når du har fylt ut noen dager")}
     <div class="grid">${box("beige","Vil du se et eksempel?",`<div class="empty"><p style="margin-top:0">Fyll ut <b>I dag</b> et par kvelder, eller se hvordan det ser ut med tre måneders registreringer.</p><div class="row"><button class="btn" data-act="demo">Vis med eksempeldata</button></div><p class="hint">Eksempeldataene kan slettes under innstillinger.</p></div>`)}</div>`;
@@ -450,13 +453,15 @@ function drawAfter(){if(!document.getElementById("lineChart"))return;
 
 /* LEGETIMEN */
 function vDoctor(){
-  const n=56, all=daysIn(addDays(today(),-(n-1)),n), regs=all.filter(x=>x.d&&Object.keys(x.d).length), D=S.doctor;
+  const first=Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).sort()[0];
+  const maxStart=addDays(today(),-55), start=first&&parse(first)>maxStart?parse(first):maxStart;
+  const n=Math.round((today()-start)/864e5)+1, short=n<56;
+  const all=daysIn(start,n), regs=all.filter(x=>x.d&&Object.keys(x.d).length), D=S.doctor;
   const fl=regs.filter(x=>typeof x.d.flash==="number"), fd=fl.filter(x=>x.d.flash>0).length;
   const fc=[0,0,0,0];fl.forEach(x=>fc[x.d.flash]++);const fMost=fc.indexOf(Math.max(...fc.slice(1)));
   const sc={};regs.forEach(x=>(x.d.sym||[]).forEach(s=>sc[s]=(sc[s]||0)+1));
   const tops=Object.entries(sc).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const bd=regs.filter(x=>x.d.bleed>0), lastB=bd.length?bd[bd.length-1].dt:null;
-  const first=Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).sort()[0];
   const summary=regs.length?`<ul class="facts">
       <li><span>Periode</span><span>${fmtShort(all[0].dt)} til ${fmtShort(today())}</span></li>
       <li><span>Dager fylt ut</span><span>${regs.length} av ${n}</span></li>
@@ -475,7 +480,7 @@ function vDoctor(){
   const plager=tops.length?`<ul class="facts">${tops.map(([s,c])=>`<li><span>${s}</span><span>${Math.round(c/regs.length*100)} % av dagene</span></li>`).join("")}</ul>`:`<p style="margin:0">Ingen registrert ennå.</p>`;
   const ta=(f,ph,cls)=>`<textarea class="lined ${cls||"short"}" data-bind="doctor||${f}" placeholder="${ph||""}">${esc(D[f])}</textarea>`;
   const qs=D.questions.map((q,i)=>`<li><span class="t">${esc(q)}</span><button class="x no-print" data-act="qdel" data-v="${i}" aria-label="Fjern">×</button></li>`).join("");
-  return `${title("Forbered deg","Legetimen","De siste åtte ukene, samlet for deg")}
+  return `${title("Forbered deg","Legetimen",short&&first?"Fra du startet "+fmtShort(start)+", samlet for deg":"De siste åtte ukene, samlet for deg")}
   <div class="grid two">
     ${box("paper","Oppsummering",summary,"span")}
     ${box("taupe","Plager som går igjen",plager,"span")}
@@ -503,7 +508,7 @@ function settings(){const th=document.documentElement.getAttribute("data-theme")
   <p class="set-h">Mer</p>
   <div class="row"><button class="btn ghost" data-act="howto">Legg på hjemskjermen</button><button class="btn ghost" data-act="welcome">Om appen</button></div>
   <div class="row">${S.meta.demo?`<button class="btn ghost" data-act="cleardemo">Fjern eksempeldata</button>`:`<button class="btn ghost" data-act="demo">Vis eksempeldata</button>`}<button class="btn ghost" data-act="askwipe">Slett alt</button></div>
-  <div class="row"><button class="btn" data-act="close">Ferdig</button></div><p class="hint" style="text-align:center;font-size:13px">Versjon 1.4</p>`);}
+  <div class="row"><button class="btn" data-act="close">Ferdig</button></div><p class="hint" style="text-align:center;font-size:13px">Versjon 1.6</p>`);}
 function backup(){
   const txt=JSON.stringify(S);let ok=false;
   try{const blob=new Blob([txt],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="midt-i-livet-kopi-"+iso(today())+".json";document.body.appendChild(a);a.click();a.remove();ok=true;}catch(e){}
