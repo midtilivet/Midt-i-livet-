@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="app-version" content="2026-10-12b">
+<meta name="app-version" content="2026-10-12c">
 <title>Midt i livet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -178,8 +178,19 @@ nav.tabs button.on svg{stroke:var(--blush-d)}
 .modal p{text-align:center}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 @media print{
-  body{background:#fff}
-  nav.tabs,header.top,.no-print,.toast{display:none!important}
+  /* utskrift alltid i lyse farger, også når telefonen står i mørk modus */
+  :root:not(#utskrift){
+    --desk:#E9E3DA; --paper:#FBF8F3; --ink:#4A3F3A; --muted:#857970; --rule:#D9CEC2; --border:#A89A8E;
+    --blush:#F3DDD6; --blush-d:#B5776C; --beige:#EFE2D0; --beige-d:#A5825B; --taupe:#E2DAD1; --taupe-d:#7B6C60;
+    --sage:#CDD6C3; --sage-d:#5C7354; --mauve:#E6D4CF; --mauve-d:#976C70; --peach:#F6E6D5; --peach-d:#B98356;
+    --forest:#4E3B2F; --on-forest:#F6EFE6; --shade:#2B1E18; --l1:#C07A6E; --l2:#E0B25C; --l3:#4E3B2F;
+    --olive:#DFE0CD; --olive-d:#6B6E45; --clay:#EEDDCC; --clay-d:#99694A;
+    color-scheme:light;
+  }
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;color:var(--ink)}
+  textarea,input{color:var(--ink)!important;background-color:transparent!important}
+  nav.tabs,header.top,.no-print,.toast,.upd,.modal{display:none!important}
   .wrap{padding:0;max-width:none}.page{box-shadow:none}
 }
 </style>
