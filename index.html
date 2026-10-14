@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="app-version" content="2026-10-14a">
+<meta name="app-version" content="2026-10-14b">
 <title>Midt i livet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -197,6 +197,17 @@ nav.tabs button.on svg{stroke:var(--blush-d)}
 .btn.big{min-width:220px;font-size:18px}
 .btn.ghost.light{color:var(--on-forest);border-color:rgba(255,255,255,.5)}
 .from-weeks em{opacity:.75}
+.print-only{display:none}
+.ptext{white-space:pre-wrap;font-size:16px;line-height:1.5;min-height:3em;border-bottom:1px solid var(--border);padding:2px 4px 6px}
+.meds li{align-items:flex-start}
+.medbody{flex:1;background:none;border:none;text-align:left;padding:8px 0;display:flex;flex-direction:column;gap:1px}
+.medbody .mt{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--d)}
+.medbody .mn{font-size:18px;font-weight:600}
+.medbody .md{font-size:15px;color:var(--muted)}
+.med.ended .mn{color:var(--muted);font-weight:500}
+.medform{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.medform .seg{margin-top:0;margin-bottom:4px}
+.medform .seg button{font-size:15px;padding:6px 12px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 @media print{
   /* utskrift alltid i lyse farger, også når telefonen står i mørk modus */
@@ -212,6 +223,12 @@ nav.tabs button.on svg{stroke:var(--blush-d)}
   body{background:#fff;color:var(--ink)}
   textarea,input{color:var(--ink)!important;background-color:transparent!important}
   nav.tabs,header.top,.no-print,.toast,.upd,.modal{display:none!important}
+  .print-only{display:block!important}
+  .lined{background-image:none!important}
+  .title .orn::before,.title .orn::after{background:var(--ink)!important;height:1px!important;opacity:.6}
+  .box,.box > .bd,.box > .hd{background-color:var(--c,var(--taupe))!important}
+  .box{break-inside:avoid}
+  .medbody{padding:4px 0}
   .wrap{padding:0;max-width:none}.page{box-shadow:none}
 }
 </style>
@@ -234,10 +251,10 @@ nav.tabs button.on svg{stroke:var(--blush-d)}
 <script>
 (function(){
 const KEY="minovergang.v1";
-const blank=()=>({meta:{},days:{},weeks:{},months:{},hobbies:[],work:"",doctor:{impact:"",since:"",questions:[],said:"",tryout:"",next:"",meds:""}});
+const blank=()=>({meta:{},days:{},weeks:{},months:{},hobbies:[],work:"",doctor:{impact:"",since:"",questions:[],said:"",tryout:"",next:"",meds:"",items:[]}});
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))||blank();}catch(e){S=blank();}
-S=Object.assign(blank(),S);S.meta=S.meta||{};S.doctor=Object.assign(blank().doctor,S.doctor||{});
+S=Object.assign(blank(),S);S.meta=S.meta||{};S.doctor=Object.assign(blank().doctor,S.doctor||{});if(!Array.isArray(S.doctor.items))S.doctor.items=[];
 let saveT,toastT;
 function save(quiet){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} if(!quiet)toast("Lagret");}
 function saveSoon(){clearTimeout(saveT);saveT=setTimeout(()=>save(),600);}
@@ -275,7 +292,8 @@ const MOVE_A=["Gå tur","Gå eller sykle til jobb","Ærend og shopping","Hage el
 const FOOD=["Faste måltider","Drakk nok vann","Frukt og grønt","Protein i måltidene","Snacks","Mye sukker","Kaffe etter kl. 14","Alkohol","Sterk mat","Spiste ute eller takeaway"];
 const SYMPT_A=["Nattesvette","Hodepine","Ledd og muskler","Mageplager","Tørr hud","Tørre øyne","Tørre slimhinner"], SYMPT_B=["Svimmelhet","Hjertebank","Hjernetåke","Glemsomhet","Uro","Nedstemthet","Irritabilitet"];
 
-const U={view:"today",day:today(),week:monday(today()),month:new Date(today().getFullYear(),today().getMonth(),1),range:8,heat:"sleep"};
+const MTYPES=["Medisin","Sykdom eller tilstand","Annet"];
+const U={medType:0,view:"today",day:today(),week:monday(today()),month:new Date(today().getFullYear(),today().getMonth(),1),range:8,heat:"sleep"};
 
 const ICONS={
  today:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',
@@ -575,7 +593,18 @@ function vDoctor(){
       <li><span>Dager med blødning</span><span>${bd.length}${lastB?", sist "+fmtShort(lastB):""}</span></li>
     </ul>`:`<p style="margin:0">Fylles ut automatisk når du har registrert noen dager under I dag.</p>`;
   const plager=tops.length?`<ul class="facts">${tops.map(([s,c])=>`<li><span>${s}</span><span>${c} av ${regs.length} dager</span></li>`).join("")}</ul>`:`<p style="margin:0">Ingen registrert ennå.</p>`;
-  const ta=(f,ph,cls)=>`<textarea class="lined ${cls||"short"}" data-bind="doctor||${f}" placeholder="${ph||""}">${esc(D[f])}</textarea>`;
+  const ta=(f,ph,cls)=>`<textarea class="lined ${cls||"short"} no-print" data-bind="doctor||${f}" placeholder="${ph||""}">${esc(D[f])}</textarea><div class="ptext print-only">${D[f]&&D[f].trim()?esc(D[f]):"&nbsp;"}</div>`;
+  const items=(D.items||[]);
+  const itemRow=(it,i)=>`<li class="med ${it.ended?"ended":""}"><button class="medbody" data-act="medit" data-v="${i}" aria-label="Endre ${esc(it.name)}"><span class="mt">${MTYPES[it.type]||"Annet"}${it.ended?" · ikke aktuelt nå":""}</span><span class="mn">${esc(it.name)}</span>${it.detail||it.since?`<span class="md">${[it.detail,it.since?"Siden "+it.since:""].filter(Boolean).map(esc).join(" · ")}</span>`:""}</button><button class="x no-print" data-act="mdel" data-v="${i}" aria-label="Fjern">×</button></li>`;
+  const medList=`${items.length?`<ul class="list meds">${items.map(itemRow).join("")}</ul>`:`<p class="hint" style="margin:0 0 6px">Legg inn én ting om gangen: en medisin, en sykdom eller noe annet legen bør vite.</p>`}
+    <div class="medform no-print">
+      <div class="seg" role="group" aria-label="Type">${MTYPES.map((t,i)=>`<button class="${U.medType===i?"on":""}" data-act="mtype" data-v="${i}">${t}</button>`).join("")}</div>
+      <input type="text" id="mName" placeholder="${["Navn på medisin","Hva gjelder det?","Hva vil du nevne?"][U.medType]}" aria-label="Navn">
+      <input type="text" id="mDetail" placeholder="${["Dose og hvor ofte, f.eks. 1 tablett morgen","Kort om det, f.eks. behandles av fastlege","Kort om det"][U.medType]}" aria-label="Detaljer">
+      <input type="text" id="mSince" placeholder="Siden når? F.eks. mars 2025" aria-label="Siden når">
+      <div class="row"><button class="btn" data-act="madd">Legg til</button></div>
+    </div>
+    <p class="q" style="margin-top:18px"><span>Annet å nevne</span></p>${ta("meds","Allergier, tidligere behandling, noe annet")}`;
   const qs=D.questions.map((q,i)=>`<li><span class="t">${esc(q)}</span><button class="x no-print" data-act="qdel" data-v="${i}" aria-label="Fjern">×</button></li>`).join("");
   return `${title("Forbered deg","Legetimen","De siste åtte ukene, samlet for deg")}
   <div class="grid two">
@@ -583,11 +612,11 @@ function vDoctor(){
     ${box("taupe","Plager som går igjen",plager,"span")}
     ${box("blush","Påvirker hverdagen mest",ta("impact","Med dine egne ord"))}
     ${box("beige","Hvor lenge",ta("since","Når merket du det første gang?"))}
-    ${box("clay","Medisiner, sykdom og annet legen bør vite",ta("meds","For eksempel medisiner du bruker, eller sykdom uten legebesøk"),"span")}
+    ${box("clay","Medisiner, sykdom og annet legen bør vite",medList,"span")}
     ${box("sage","Spørsmål jeg vil stille",`<ul class="list">${qs}</ul><div class="addrow no-print"><input type="text" id="qIn" placeholder="Skriv et spørsmål" aria-label="Nytt spørsmål"><button class="btn" data-act="qadd">Legg til</button></div>`,"span")}
     ${box("mauve","Etter timen: dette ble sagt",ta("said"))}
     ${box("peach","Dette skal jeg prøve",ta("tryout"))}
-    ${box("paper","Neste time",`<input type="date" data-bind="doctor||next" value="${esc(D.next)}" aria-label="Neste time">`,"span")}
+    ${box("paper","Neste time",`<input type="date" class="no-print" data-bind="doctor||next" value="${esc(D.next)}" aria-label="Neste time"><div class="ptext print-only">${D.next?fmtLong(parse(D.next)):"&nbsp;"}</div>`,"span")}
   </div>
   <div class="row no-print"><button class="btn" data-act="print">Skriv ut eller lagre som PDF</button></div>
   <p class="foot">Journalen hjelper deg å registrere og huske. Den gir ikke medisinske råd; for vurdering og behandling, snakk med legen din.</p>`;
@@ -616,6 +645,11 @@ function remind(){
   let ok=false;try{const blob=new Blob([ics],{type:"text/calendar"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="midt-i-livet-kveld.ics";document.body.appendChild(a);a.click();a.remove();ok=true;}catch(e){}
   openModal(`<h3>Påminnelse</h3><p class="hint" style="text-align:center">${ok?"Åpne filen som lastes ned og trykk «Legg til alle». ":""}Kommer det ingen fil, kan du legge den inn selv: lag en ny hendelse i Kalender kl. 21 som gjentas daglig, og sett varsel «Ved hendelsen».</p><div class="row"><button class="btn" data-act="close">Ferdig</button></div>`);
 }
+function medEdit(i){const it=S.doctor.items[i];
+  openModal(`<h3>Endre</h3><div class="seg" id="eType">${MTYPES.map((t,j)=>`<button class="${(it.type||0)===j?"on":""}" data-act="etype" data-v="${j}">${t}</button>`).join("")}</div>
+  <div class="medform"><input type="text" id="eName" value="${esc(it.name)}" aria-label="Navn"><input type="text" id="eDetail" value="${esc(it.detail)}" placeholder="Detaljer" aria-label="Detaljer"><input type="text" id="eSince" value="${esc(it.since)}" placeholder="Siden når?" aria-label="Siden når">
+  <button class="opt ${it.ended?"on":""}" id="eEnded" data-act="eended" aria-pressed="${!!it.ended}" style="--d:var(--clay-d)"><span class="s"></span>Ikke aktuelt lenger</button></div>
+  <div class="row"><button class="btn" data-act="msave" data-v="${i}">Lagre</button><button class="btn ghost" data-act="close">Avbryt</button></div>`);}
 function backup(){
   const txt=JSON.stringify(S);let ok=false;
   try{const blob=new Blob([txt],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="midt-i-livet-kopi-"+iso(today())+".json";document.body.appendChild(a);a.click();a.remove();ok=true;}catch(e){}
@@ -634,7 +668,7 @@ function restore(){
 function doImport(txt){
   let d;try{d=JSON.parse(txt);}catch(e){toast("Teksten ser ikke ut som en kopi fra appen");return;}
   if(!d||typeof d!=="object"||!d.days){toast("Fant ingen registreringer i kopien");return;}
-  S=Object.assign(blank(),d);S.meta=S.meta||{};S.doctor=Object.assign(blank().doctor,S.doctor||{});save(true);closeModal();render();toast("Kopien er hentet inn");
+  S=Object.assign(blank(),d);S.meta=S.meta||{};S.doctor=Object.assign(blank().doctor,S.doctor||{});if(!Array.isArray(S.doctor.items))S.doctor.items=[];save(true);closeModal();render();toast("Kopien er hentet inn");
 }
 const WSTEPS=[
  ["Velkommen","Midt i livet er din daglige journal for kropp, jobb og livet videre. Det tar et par minutter om dagen."],
@@ -674,7 +708,7 @@ function demo(){
   nd.months[monthKey(today())]={more:"Tid ute. Folk som gir meg energi.",less:"Sene kvelder foran skjermen.",dream:"Jobber fire dager i uka, fredagene er mine. Lange turer, et kurs, mer tid med venner."};
   nd.hobbies=[{t:"Morgenbad",done:true},{t:"Kurs i akvarell"},{t:"Lange turer i skogen"}];
   nd.work="Rolige morgener, færre sene møter, hjemmekontor etter dårlige netter.";
-  nd.doctor={impact:"Søvnen. Når jeg sover dårlig, blir alt tyngre, også på jobb.",since:"Rundt ett år, verre det siste halvåret.",questions:["Kan søvnproblemene henge sammen med overgangsalderen?","Hvilke muligheter finnes for meg?","Når bør vi følge opp igjen?"],said:"",tryout:"",next:""};
+  nd.doctor={impact:"Søvnen. Når jeg sover dårlig, blir alt tyngre, også på jobb.",since:"Rundt ett år, verre det siste halvåret.",questions:["Kan søvnproblemene henge sammen med overgangsalderen?","Hvilke muligheter finnes for meg?","Når bør vi følge opp igjen?"],said:"",tryout:"",next:"",meds:"",items:[{type:0,name:"Østrogenplaster",detail:"Skiftes to ganger i uka",since:"august 2026"},{type:1,name:"Lavt stoffskifte",detail:"Følges opp av fastlege",since:"2019"}]};
   S=nd;save(true);closeModal();U.view="overview";render();toast("Eksempeldata lastet inn");
 }
 
@@ -695,6 +729,16 @@ document.addEventListener("click",e=>{
   if(a==="catchup"){U.day=addDays(today(),-1);U.part="pm";render();try{top();}catch(x){}return;}
   if(a==="skipcatch"){S.meta.skipCatch=iso(addDays(today(),-1));save(true);render();return;}
   if(a==="remind"){remind();return;}
+  if(a==="mtype"){U.medType=+v;render();return;}
+  if(a==="madd"){const n=document.getElementById("mName");if(!n.value.trim()){toast("Skriv navnet først");n.focus();return;}
+    S.doctor.items=S.doctor.items||[];S.doctor.items.push({type:U.medType,name:n.value.trim(),detail:document.getElementById("mDetail").value.trim(),since:document.getElementById("mSince").value.trim()});save();render();return;}
+  if(a==="mdel"){const it=S.doctor.items[+v];openModal(`<h3>Fjerne?</h3><p class="hint">${esc(it.name)} fjernes fra listen.</p><div class="row"><button class="btn danger" data-act="mdelok" data-v="${v}">Fjern</button><button class="btn ghost" data-act="close">Avbryt</button></div>`);return;}
+  if(a==="mdelok"){S.doctor.items.splice(+v,1);save();closeModal();render();return;}
+  if(a==="medit"){medEdit(+v);return;}
+  if(a==="msave"){const it=S.doctor.items[+v],n=document.getElementById("eName").value.trim();if(!n){toast("Navnet kan ikke være tomt");return;}
+    Object.assign(it,{name:n,detail:document.getElementById("eDetail").value.trim(),since:document.getElementById("eSince").value.trim(),type:+document.querySelector("#eType button.on").dataset.v,ended:document.getElementById("eEnded").classList.contains("on")});save();closeModal();render();return;}
+  if(a==="etype"){document.querySelectorAll("#eType button").forEach(x=>x.classList.toggle("on",x===b));return;}
+  if(a==="eended"){b.classList.toggle("on");b.setAttribute("aria-pressed",b.classList.contains("on"));return;}
   if(a==="nowork"){const d=dayData(iso(U.day));d.noWork=!d.noWork;if(d.noWork)delete d.work;save();render();return;}
   if(a==="day"){const n=addDays(U.day,+v);if(n<=today()){U.day=n;U.part=null;render();}return;}
   if(a==="gotoday"){U.day=today();U.part=null;render();return;}
@@ -728,6 +772,7 @@ document.addEventListener("click",e=>{
 document.getElementById("modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();
   if(e.key==="Enter"&&e.target.id==="hobIn")document.querySelector('[data-act="hobadd"]').click();
+  if(e.key==="Enter"&&["mName","mDetail","mSince"].includes(e.target.id))document.querySelector('[data-act="madd"]').click();
   if(e.key==="Enter"&&e.target.id==="qIn")document.querySelector('[data-act="qadd"]').click();});
 function bind(e){const el=e.target;if(!el.dataset||!el.dataset.bind)return;const[col,key,f]=el.dataset.bind.split("|");
   if(col==="root")S[f]=el.value;else if(col==="doctor")S.doctor[f]=el.value;else{S[col][key]=S[col][key]||{};S[col][key][f]=el.value;if(col==="days"&&f==="next")delete S[col][key].nextCarry;}saveSoon();}
