@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="app-version" content="2026-10-12c">
+<meta name="app-version" content="2026-10-14a">
 <title>Midt i livet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -158,6 +158,7 @@ input:focus{outline:none;border-bottom-color:var(--ink)}
 .from-weeks{list-style:none;padding:0;margin:0}
 .from-weeks li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.25);font-size:17px}
 .from-weeks li:last-child{border-bottom:none}
+.joys li{border-bottom-color:var(--border)}
 .from-weeks small{display:block;opacity:.75;font-size:14px}
 .empty{text-align:center}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
@@ -176,6 +177,26 @@ nav.tabs button.on svg{stroke:var(--blush-d)}
 .modal .card{background:var(--paper);border-radius:22px;padding:24px 20px;max-width:540px;width:100%}
 .modal h3{font-family:var(--serif);font-size:28px;font-weight:600;margin:0 0 6px;text-align:center}
 .modal p{text-align:center}
+.weekdots{display:flex;justify-content:center;gap:6px;margin:6px 0 2px}
+.wd{background:none;border:none;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:13px;color:var(--muted);min-width:36px}
+.wd i{width:18px;height:18px;border-radius:50%;border:1.4px solid var(--blush-d);background:var(--paper)}
+.wd.half i{background:linear-gradient(to top,var(--blush-d) 50%,var(--paper) 50%)}
+.wd.full i{background:var(--blush-d)}
+.wd.cur span{color:var(--ink);font-weight:600}
+.wd:disabled{opacity:.35}
+.seg.part{margin-top:10px}
+.dayline{text-align:center;font-family:var(--serif);font-style:italic;font-size:21px;line-height:1.35;margin:16px 10px 0}
+.welcome-back{text-align:center;font-family:var(--serif);font-style:italic;font-size:19px;color:var(--muted);margin:12px 0 0}
+.banner.catch{flex-direction:column;align-items:stretch;text-align:center}
+.banner.catch .bt{display:flex;gap:14px;justify-content:center;align-items:center}
+.sleepsum{text-align:center;font-size:16px;color:var(--muted);margin:0}
+.looktext{text-align:center;font-family:var(--serif);font-size:24px;font-style:italic;margin:2px 0 0;line-height:1.3}
+.seg.res{margin-top:4px}.seg.res button{min-width:76px}
+.loopline{text-align:center;font-size:17px;margin:14px 0 0}
+.closeline{text-align:center;font-family:var(--serif);font-style:italic;font-size:22px;margin:0 0 10px}
+.btn.big{min-width:220px;font-size:18px}
+.btn.ghost.light{color:var(--on-forest);border-color:rgba(255,255,255,.5)}
+.from-weeks em{opacity:.75}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 @media print{
   /* utskrift alltid i lyse farger, også når telefonen står i mørk modus */
@@ -285,31 +306,122 @@ const checks=(f,labels,arr)=>`<div class="radios">${labels.map(s=>{const on=(arr
 const optBtn=(f,s,arr)=>{const on=(arr||[]).includes(s);return `<button class="opt ${on?"on":""}" data-act="multi" data-f="${f}" data-v="${s}" aria-pressed="${on}"><span class="s"></span>${s}</button>`;};
 const checkCols=(f,cols,arr)=>`<div class="radios cols">${cols.map(([h,l])=>`<div>${h?`<p class="colh">${h}</p>`:""}${l.map(s=>optBtn(f,s,arr)).join("")}</div>`).join("")}</div>`;
 const radios=(f,labels,val)=>`<div class="radios">${labels.map((l,i)=>`<button class="opt ${val===i?"on":""}" data-act="pick" data-f="${f}" data-v="${i}" aria-pressed="${val===i}"><span class="r"></span>${l}</button>`).join("")}</div>`;
+/* morgen og kveld: tekster i Elisabeths stemme, samme linje hele dagen */
+const AM_LINES=["God morgen. To små spørsmål, så er du i gang.","Ingen dag trenger å bli perfekt. Den trenger bare å bli din.","Start med det du gleder deg til. Resten finner sin plass.","En kopp kaffe og et par trykk. Så kan dagen begynne.","Du bestemmer tempoet i dag."];
+const PM_LINES=["Dagen er nesten over. Vær ærlig, og vær snill mot deg selv.","Et par minutter for deg, før dagen lukkes.","Det du merker deg i kveld, ser du sammenhengen i senere.","Ikke alt trenger en karakter. Noe trenger bare å bli sett."];
+const CLOSE_LINES=["Dagen er tatt vare på. Sov godt.","Lukket og lagret. Resten kan vente til i morgen.","Fint at du stoppet opp. Det er ikke alle som gjør det.","Dagen var din. Det er den fortsatt."];
+const RES=["Ja","Delvis","Nei"];
+const RES_LINES={1:["Godt. Det er sånne ting en uke husker.","Fint. Det er verdt å legge merke til.","Akkurat sånn. Ta med deg den."],2:["Litt er også noe. Det teller.","Halvveis er fortsatt et sted å være."],3:["Noen dager tar en annen vei. Det du gledet deg til, er ikke borte.","Det ble ikke i dag. Det sier noe om dagen, ikke om deg.","Planer flytter seg. Det gjør du også."]};
+const daySeed=k=>k.split("-").reduce((a,b)=>a*31+ +b,7);
+const lineFor=(arr,k,salt)=>arr[(daySeed(k)+(salt||0))%arr.length];
+const filled=x=>!!(x&&Object.keys(x).some(f=>{const v=x[f];return v!==undefined&&v!==""&&!(Array.isArray(v)&&!v.length);}));
+const hasSleep=x=>!!(x&&(x.sleep||typeof x.sleepH==="number"||typeof x.onset==="number"||typeof x.wake==="number"));
+function lookFor(k){const d=S.days[k]||{},p=S.days[iso(addDays(parse(k),-1))]||{};return d.look!==undefined?d.look:(p.next||"");}
+function lookFromYesterday(k){const d=S.days[k]||{},p=S.days[iso(addDays(parse(k),-1))]||{};return d.look===undefined&&!!p.next;}
+function carryFor(k){const d=S.days[k]||{},p=S.days[iso(addDays(parse(k),-1))]||{};return (d.look===undefined||d.look===p.next)?(p.nextCarry||0):0;}
+function autoPart(k){const d=S.days[k]||{};return k===iso(today())&&new Date().getHours()<12&&!d.closed?"am":"pm";}
+
+function weekDots(){
+  const m=monday(U.day),k=iso(U.day);let h="";
+  for(let i=0;i<7;i++){const dt=addDays(m,i),dk=iso(dt),x=S.days[dk],fut=dt>today();
+    const st=x&&x.closed?"full":filled(x)?"half":"";
+    h+=`<button class="wd ${st} ${dk===k?"cur":""}" data-act="goday" data-v="${dk}" ${fut?"disabled":""} aria-label="${fmtShort(dt)}${st==="full"?", lukket":st==="half"?", påbegynt":""}"><i></i><span>${DN2[i]}</span></button>`;}
+  return `<div class="weekdots no-print">${h}</div>`;
+}
+
+function catchUp(){
+  /* bare på dagens side, bare før hun har begynt på i dag */
+  const k=iso(today());if(iso(U.day)!==k||filled(S.days[k]))return "";
+  const yk=iso(addDays(today(),-1)),y=S.days[yk];
+  let last=null;for(let i=1;i<=120;i++){if(filled(S.days[iso(addDays(today(),-i))])){last=i;break;}}
+  if(last===null)return "";
+  if(S.meta.skipCatch===yk)return "";
+  if(last===1&&!y.closed)return `<div class="banner catch no-print"><span>I går ble ikke lukket. Vil du lukke den nå?</span><div class="bt"><button class="btn" data-act="catchup">Lukk i går</button><button class="link" data-act="skipcatch">La den være</button></div></div>`;
+  if(last===2)return `<div class="banner catch no-print"><span>I går ble ikke fylt ut. Ta den på et minutt, eller la den være.</span><div class="bt"><button class="btn" data-act="catchup">Ta i går</button><button class="link" data-act="skipcatch">La den være</button></div></div>`;
+  if(last>2)return `<p class="welcome-back">Velkommen tilbake. Vi begynner med i dag.</p>`;
+  return "";
+}
+
+function sleepBox(d,label){
+  return box("blush",label||"Søvn",scale("sleep",d.sleep)+`<p class="q" style="margin-top:18px"><span>Hvor mange timer sov du?</span></p>${radios("sleepH",HOURS,d.sleepH)}<p class="q" style="margin-top:16px"><span>Hvor lang tid tok det å sovne?</span></p>${radios("onset",ONSET,d.onset)}<p class="q" style="margin-top:16px"><span>Hvor mange ganger våknet du?</span></p>${radios("wake",WAKE,d.wake)}`);
+}
+
+function loopBox(k,d){
+  const look=lookFor(k);if(!look)return "";
+  const r=d.lookRes,carry=carryFor(k);
+  const btns=`<div class="seg res" role="group" aria-label="Ble det noe av?">${RES.map((l,i)=>`<button class="${r===i+1?"on":""}" data-act="lookres" data-v="${i+1}" aria-pressed="${r===i+1}">${l}</button>`).join("")}</div>`;
+  let after="";
+  if(r)after=`<p class="loopline">${lineFor(RES_LINES[r],k)}</p>`;
+  if(r===3){
+    if(d.lookLet)after+=`<p class="hint" style="text-align:center">Sluppet. Det er også et valg.</p>`;
+    else if(d.next===look&&d.nextCarry)after+=`<p class="hint" style="text-align:center">Står på lista for i morgen.</p>`;
+    else if(carry>=2)after+=`<p class="loopline" style="margin-top:12px">Dette har ventet en stund. Er det fortsatt viktig, eller kan du slippe det?</p><div class="row"><button class="btn" data-act="carry">Fortsatt viktig</button><button class="btn ghost" data-act="letgo">Slipp det</button></div>`;
+    else after+=`<div class="row"><button class="btn" data-act="carry">Ta det med til i morgen</button><button class="btn ghost" data-act="letgo">La det gå</button></div>`;
+  }
+  return box("beige","Det du gledet deg til",`<p class="looktext">${esc(look)}</p><p class="q" style="justify-content:center;margin-top:12px"><span>Ble det noe av?</span></p>${btns}${after}`);
+}
+
+function closedBox(k,d){
+  const look=lookFor(k),rows=[];
+  if(look&&d.lookRes)rows.push(["Gledet deg til",esc(look)+` <em>(${RES[d.lookRes-1].toLowerCase()})</em>`]);
+  if(d.best)rows.push(["Det beste",esc(d.best)]);
+  if(d.next)rows.push(["I morgen",esc(d.next)]);
+  return box("","Dagen er lukket",`<p class="closeline">${lineFor(CLOSE_LINES,k)}</p>${rows.length?`<ul class="from-weeks">${rows.map(([a,b])=>`<li><small>${a}</small>${b}</li>`).join("")}</ul>`:""}<div class="row"><button class="btn ghost light" data-act="reopen">Åpne dagen igjen</button></div>`,"dark");
+}
+
 function vToday(){
   const k=iso(U.day), d=S.days[k]||{}, isToday=k===iso(today());
-  let last7=0;for(let i=0;i<7;i++){const x=S.days[iso(addDays(today(),-i))];if(x&&Object.keys(x).length)last7++;}
+  const part=U.part||autoPart(k);
+  let last7=0;for(let i=0;i<7;i++){if(filled(S.days[iso(addDays(today(),-i))]))last7++;}
   const work=d.noWork?"":scale("work",d.work);
-  const nDays=Object.keys(S.days).filter(k=>Object.keys(S.days[k]).length).length;
+  const nDays=Object.keys(S.days).filter(k=>filled(S.days[k])).length;
   const lb=S.meta.lastBackup?parse(S.meta.lastBackup):null;
   const needBackup=nDays>=7&&(!lb||(today()-lb)/864e5>30);
-  return `${title("Daglig logg",isToday?"I dag":"Tilbake",fmtLong(U.day))}
+  const amDone=hasSleep(d)||!!(d.look&&d.look.trim());
+  const head=isToday?(part==="am"?"God morgen":"God kveld"):"Tilbake";
+  let html=`${title("Daglig logg",head,fmtLong(U.day))}
   ${needBackup?`<div class="banner no-print"><span>${lb?"Det er over en måned siden forrige sikkerhetskopi.":"Du har ikke tatt sikkerhetskopi ennå."}</span><button class="btn" data-act="backup">Ta kopi nå</button></div>`:""}
+  ${catchUp()}
   <div class="nav no-print">
     <button class="icon-btn" data-act="day" data-v="-1" aria-label="Forrige dag">${chev(-1)}</button>
     ${!isToday?`<button class="link" data-act="gotoday">Til i dag</button>`:`<span class="lbl" style="color:var(--muted);font-size:16px">Et par minutter om dagen</span>`}
     <button class="icon-btn" data-act="day" data-v="1" aria-label="Neste dag" ${isToday?'disabled style="opacity:.3"':""}>${chev(1)}</button>
   </div>
-  <div class="grid">
-    ${box("blush","Søvn",scale("sleep",d.sleep)+`<p class="q" style="margin-top:18px"><span>Hvor mange timer sov du?</span></p>${radios("sleepH",HOURS,d.sleepH)}<p class="q" style="margin-top:16px"><span>Hvor lang tid tok det å sovne?</span></p>${radios("onset",ONSET,d.onset)}<p class="q" style="margin-top:16px"><span>Hvor mange ganger våknet du?</span></p>${radios("wake",WAKE,d.wake)}`)}
+  ${weekDots()}
+  <div class="seg part no-print" role="group" aria-label="Morgen eller kveld">
+    <button class="${part==="am"?"on":""}" data-act="part" data-v="am">☀ Morgen${amDone?" ✓":""}</button>
+    <button class="${part==="pm"?"on":""}" data-act="part" data-v="pm">☾ Kveld${d.closed?" ✓":""}</button>
+  </div>`;
+
+  if(part==="am"){
+    const fromY=lookFromYesterday(k);
+    html+=`<p class="dayline">${lineFor(AM_LINES,k)}</p>
+    <div class="grid">
+      ${sleepBox(d)}
+      ${box("beige","I dag gleder jeg meg til",`<input type="text" data-bind="days|${k}|look" value="${esc(lookFor(k))}" placeholder="En lunsj, en tur, en samtale …" aria-label="I dag gleder jeg meg til">${fromY?`<p class="hint">Dette skrev du i går kveld. Endre det om dagen har en annen plan.</p>`:`<p class="hint">Én ting holder. Stort eller lite, det teller likt.</p>`}`)}
+    </div>
+    <div class="row"><button class="btn" data-act="amdone">Ferdig for nå</button></div>
+    <p class="foot">Morgenen er valgfri. Alt kan også tas i kveld.</p>`;
+    return html;
+  }
+
+  html+=`<p class="dayline">${lineFor(PM_LINES,k)}</p><div class="grid">`;
+  if(!hasSleep(d))html+=sleepBox(d,"Søvn i natt");
+  else html+=`<p class="sleepsum no-print">Søvn: ${d.sleep?SCALES.sleep.l[d.sleep-1]:"registrert"}${typeof d.sleepH==="number"?" · "+HOURS[d.sleepH].toLowerCase():""} <button class="link" data-act="part" data-v="am">Endre</button></p>`;
+  html+=`${loopBox(k,d)}
     ${box("beige","Sinn",scale("mood",d.mood))}
     ${box("sage","Energi",scale("energy",d.energy)+`<div class="sp"></div>`+work+`<button class="opt ${d.noWork?"on":""}" data-act="nowork" style="margin-top:8px"><span class="s"></span>Jobbet ikke i dag</button>`)}
     ${box("olive","Bevegelse",`<p class="q"><span>Hvor mye beveget du deg?</span></p>${radios("move",MOVEMIN,d.move)}<p class="q" style="margin-top:16px"><span>Hva gjorde du?</span></p>${checkCols("moveType",[["I hverdagen",MOVE_A],["Trening og timer",MOVE_B]],d.moveType)}`)}
     ${box("clay","Mat og drikke",`<p class="q"><span>Kryss av det som stemmer i dag</span></p>${checks("food",FOOD,d.food)}<p class="hint">Ingen kalorier eller vekt. Bare det som kan henge sammen med søvn og energi.</p>`)}
     ${box("peach","Hetetokter og syklus",`<p class="q"><span>Hetetokter i dag</span></p>${radios("flash",FLASH,d.flash)}<p class="q" style="margin-top:16px"><span>Blødning</span></p>${radios("bleed",BLEED,d.bleed)}`)}
     ${box("taupe","Kroppen i dag",checkCols("sym",[["",SYMPT_A],["",SYMPT_B]],d.sym)+`<input type="text" style="margin-top:10px" data-bind="days|${k}|symOther" value="${esc(d.symOther)}" placeholder="Noe annet? Skriv det her" aria-label="Annen plage">`)}
+    ${box("mauve","Det beste i dag",`<input type="text" data-bind="days|${k}|best" value="${esc(d.best)}" placeholder="Stort eller lite, det teller likt" aria-label="Det beste i dag">`)}
     ${box("paper","Notater",`<textarea class="lined short" data-bind="days|${k}|note" aria-label="Notater" placeholder="Et par stikkord holder">${esc(d.note)}</textarea>`)}
-  </div>
-  <p class="foot">${last7} av de siste 7 dagene er fylt ut. Alt lagres automatisk, bare på denne enheten.</p>`;
+    ${box("sage","I morgen gleder jeg meg til",`<input type="text" data-bind="days|${k}|next" value="${esc(d.next)}" placeholder="En kaffe i sola, en telefon, en tur …" aria-label="I morgen gleder jeg meg til"><p class="hint">I morgen spør appen om det ble noe av.</p>`)}
+  </div>`;
+  html+=d.closed?`<div class="grid">${closedBox(k,d)}</div>`:`<div class="row"><button class="btn big" data-act="closeday">Lukk dagen</button></div>`;
+  html+=`<p class="foot">${last7} av de siste 7 dagene er fylt ut. Alt lagres automatisk, bare på denne enheten.</p>`;
+  return html;
 }
 
 /* UKA */
@@ -356,6 +468,7 @@ function vLife(){
   const eases=Object.keys(S.weeks).sort().reverse().filter(k=>S.weeks[k].workease&&S.weeks[k].workease.trim()).slice(0,5)
      .map(k=>`<li>${esc(S.weeks[k].workease)}<small>Uke ${weekNo(parse(k))}</small></li>`).join("");
   const hob=S.hobbies.map((h,i)=>`<li class="${h.done?"done":""}"><button class="opt ${h.done?"on":""}" style="padding:0" data-act="hobdone" data-v="${i}" aria-label="Merk som gjort"><span class="s"></span></button><span class="t">${esc(h.t)}</span><button class="x" data-act="hobdel" data-v="${i}" aria-label="Fjern">×</button></li>`).join("");
+  const joys=[];{const y=U.month.getFullYear(),mo=U.month.getMonth();for(let dt=new Date(y,mo,1);dt.getMonth()===mo&&dt<=today();dt=addDays(dt,1)){const x=S.days[iso(dt)];if(x&&(x.lookRes===1||x.lookRes===2)){const t=lookFor(iso(dt));if(t)joys.push(`<li>${esc(t)}<small>${fmtShort(dt)}${x.lookRes===2?" · delvis":""}</small></li>`);}}}
   return `${title("Månedlig","Livet videre",fmtMonth(U.month))}
   <div class="nav no-print">
     <button class="icon-btn" data-act="month" data-v="-1" aria-label="Forrige måned">${chev(-1)}</button>
@@ -367,6 +480,7 @@ function vLife(){
     ${box("mauve","Mindre av",ta("less","","short"))}
     ${box("beige","Drømmeuka om to år",ta("dream","Hvor mange dager jobber du? Hva gjør du med fritiden?"),"span")}
     ${box("paper","Ting jeg vil gjøre",`<ul class="list">${hob}</ul><div class="addrow no-print"><input type="text" id="hobIn" placeholder="For eksempel morgenbad" aria-label="Ny ting"><button class="btn" data-act="hobadd">Legg til</button></div>`,"span")}
+    ${box("sage","Det du gledet deg til, og som ble noe av",joys.length?`<ul class="from-weeks joys">${joys.join("")}</ul>`:`<p class="hint" style="margin:0">Når du svarer på «Ble det noe av?» om kvelden, samles det her.</p>`,"span")}
     ${box("","Det jeg trenger på jobb",`<textarea class="lined short" data-bind="root||work" placeholder="Rolige morgener, færre sene møter …">${esc(S.work)}</textarea>${eases?`<p class="hint" style="color:inherit;opacity:.8;margin-top:14px">Fra ukene dine:</p><ul class="from-weeks">${eases}</ul>`:""}`,"dark span")}
   </div>`;
 }
@@ -487,12 +601,21 @@ function settings(){const th=document.documentElement.getAttribute("data-theme")
   openModal(`<h3>Innstillinger</h3><p class="hint" style="text-align:center">Alt du skriver lagres bare på denne enheten. Ingen andre kan se det.</p>
   <p class="set-h">Sikkerhetskopi</p><p class="hint" style="text-align:center">Siste kopi: ${lb}. Ta en kopi en gang i måneden, og alltid før du bytter telefon.</p>
   <div class="row"><button class="btn" data-act="backup">Lagre sikkerhetskopi</button><button class="btn ghost" data-act="restore">Hent inn kopi</button></div>
+  <p class="set-h">Påminnelse om kvelden</p><p class="hint" style="text-align:center">Appen kan ikke sende varsler selv. Legg inn en fast påminnelse i kalenderen, så får du et varsel hver kveld kl. 21.</p>
+  <div class="row"><button class="btn ghost" data-act="remind">Legg til i kalenderen</button></div>
   <p class="set-h">Utseende</p>
   <div class="seg">${[["auto","Automatisk"],["light","Lyst"],["dark","Mørkt"]].map(([k,l])=>`<button class="${th===k?"on":""}" data-act="theme" data-v="${k}">${l}</button>`).join("")}</div>
   <p class="set-h">Mer</p>
   <div class="row"><button class="btn ghost" data-act="howto">Legg på hjemskjermen</button><button class="btn ghost" data-act="welcome">Om appen</button></div>
   <div class="row"><button class="btn ghost" data-act="demo">Vis eksempeldata</button><button class="btn ghost" data-act="askwipe">Slett alt</button></div>
   <div class="row"><button class="btn" data-act="close">Ferdig</button></div>`);}
+function remind(){
+  const t=today(),ds=t.getFullYear()+pad(t.getMonth()+1)+pad(t.getDate()),stamp=new Date().toISOString().replace(/[-:]/g,"").slice(0,15)+"Z";
+  const url=/^https?:/.test(location.protocol)?location.origin+location.pathname:"";
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Midt i livet//NO","BEGIN:VEVENT","UID:kveld-"+Date.now()+"@midtilivet","DTSTAMP:"+stamp,"DTSTART:"+ds+"T210000","DTEND:"+ds+"T210500","RRULE:FREQ=DAILY","SUMMARY:Lukk dagen i Midt i livet","DESCRIPTION:Et par minutter for deg."+(url?" "+url:""),"BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:Lukk dagen","TRIGGER:PT0M","END:VALARM","END:VEVENT","END:VCALENDAR"].join("\r\n");
+  let ok=false;try{const blob=new Blob([ics],{type:"text/calendar"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="midt-i-livet-kveld.ics";document.body.appendChild(a);a.click();a.remove();ok=true;}catch(e){}
+  openModal(`<h3>Påminnelse</h3><p class="hint" style="text-align:center">${ok?"Åpne filen som lastes ned og trykk «Legg til alle». ":""}Kommer det ingen fil, kan du legge den inn selv: lag en ny hendelse i Kalender kl. 21 som gjentas daglig, og sett varsel «Ved hendelsen».</p><div class="row"><button class="btn" data-act="close">Ferdig</button></div>`);
+}
 function backup(){
   const txt=JSON.stringify(S);let ok=false;
   try{const blob=new Blob([txt],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="midt-i-livet-kopi-"+iso(today())+".json";document.body.appendChild(a);a.click();a.remove();ok=true;}catch(e){}
@@ -540,6 +663,9 @@ function demo(){
     const sym=[];if(flash>=2&&r()<.7)sym.push("Nattesvette");if(sleep<=2&&r()<.6)sym.push("Hjernetåke");if(r()<.18)sym.push("Hodepine");if(r()<.25)sym.push("Ledd og muskler");if(mood<=2&&r()<.5)sym.push("Uro");if(r()<.08)sym.push("Hjertebank");
     if(sym.length)d.sym=sym;const cyc=(83-i)%38;d.bleed=cyc<4?(cyc===1?2:1):0;
     if(r()<.1)d.note=["Lang dag med møter","Gikk tur i lunsjen, hjalp","Våknet tre ganger","Vin til middag","God kveld med venninner"][Math.floor(r()*5)];
+    if(r()<.55){d.look=["Lunsj med en venninne","Kveldstur","Ny bok","Middag med barna","Yogatimen","Kaffe i sola","Telefon med søsteren min"][Math.floor(r()*7)];d.lookRes=r()<.6?1:r()<.5?2:3;}
+    if(r()<.3)d.best=["Latter i lunsjen","Sola på vei hjem","Ferdig med presentasjonen","God samtale med datteren min"][Math.floor(r()*4)];
+    if(i>1||r()<.8)d.closed=true;
     nd.days[iso(dt)]=d;prevAlc=alc;}
   const m0=monday(today());
   nd.weeks[iso(addDays(m0,-7))]={hard:"Nettene. Våknet varm nesten hver natt.",better:"Kjøligere soverom og tur i lunsjen.",workimpact:"Tungt å konsentrere meg i ettermiddagsmøtene.",workease:"Færre møter etter klokka 14",joy:"Middag med søsteren min. Første morgenbad.",next:"Legge meg før 23 fire dager"};
@@ -555,13 +681,24 @@ function demo(){
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-act]");if(!b||b.disabled)return;const a=b.dataset.act,v=b.dataset.v;
   const top=()=>window.scrollTo&&window.scrollTo(0,0);
-  if(a==="tab"){U.view=v;render();try{top();}catch(x){}return;}
+  if(a==="tab"){U.view=v;U.part=null;render();try{top();}catch(x){}return;}
   if(a==="rate"||a==="pick"){const d=dayData(iso(U.day)),f=b.dataset.f,n=+v;d[f]=d[f]===n?undefined:n;save();render();return;}
   if(a==="multi"){const d=dayData(iso(U.day)),f=b.dataset.f;d[f]=d[f]||[];const i=d[f].indexOf(v);i>=0?d[f].splice(i,1):d[f].push(v);save();render();return;}
+  if(a==="part"){U.part=v;render();try{top();}catch(x){}return;}
+  if(a==="amdone"){save(true);toast("Lagret. Vi ses i kveld.");return;}
+  if(a==="lookres"){const k=iso(U.day),d=dayData(k),n=+v;d.lookRes=d.lookRes===n?undefined:n;
+    if(d.lookRes!==3){delete d.lookLet;if(d.nextCarry&&d.next===lookFor(k)){delete d.next;delete d.nextCarry;}}save();render();return;}
+  if(a==="carry"){const k=iso(U.day),d=dayData(k);d.next=lookFor(k);d.nextCarry=carryFor(k)+1;delete d.lookLet;save();render();return;}
+  if(a==="letgo"){const k=iso(U.day),d=dayData(k);d.lookLet=true;if(d.nextCarry&&d.next===lookFor(k)){delete d.next;delete d.nextCarry;}save();render();return;}
+  if(a==="closeday"){const d=dayData(iso(U.day));d.closed=true;save(true);render();toast("Dagen er lukket");setTimeout(()=>{const el=document.querySelector(".box.dark");if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"center"});},60);return;}
+  if(a==="reopen"){const d=dayData(iso(U.day));delete d.closed;save();render();return;}
+  if(a==="catchup"){U.day=addDays(today(),-1);U.part="pm";render();try{top();}catch(x){}return;}
+  if(a==="skipcatch"){S.meta.skipCatch=iso(addDays(today(),-1));save(true);render();return;}
+  if(a==="remind"){remind();return;}
   if(a==="nowork"){const d=dayData(iso(U.day));d.noWork=!d.noWork;if(d.noWork)delete d.work;save();render();return;}
-  if(a==="day"){const n=addDays(U.day,+v);if(n<=today()){U.day=n;render();}return;}
-  if(a==="gotoday"){U.day=today();render();return;}
-  if(a==="goday"){const n=parse(v);if(n<=today()){U.day=n;U.view="today";render();try{top();}catch(x){}}return;}
+  if(a==="day"){const n=addDays(U.day,+v);if(n<=today()){U.day=n;U.part=null;render();}return;}
+  if(a==="gotoday"){U.day=today();U.part=null;render();return;}
+  if(a==="goday"){const n=parse(v);if(n<=today()){U.day=n;U.part=null;U.view="today";render();try{top();}catch(x){}}return;}
   if(a==="week"){U.week=addDays(U.week,7*+v);render();return;}
   if(a==="thisweek"){U.week=monday(today());render();return;}
   if(a==="month"){U.month=new Date(U.month.getFullYear(),U.month.getMonth()+ +v,1);render();return;}
@@ -593,7 +730,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();
   if(e.key==="Enter"&&e.target.id==="hobIn")document.querySelector('[data-act="hobadd"]').click();
   if(e.key==="Enter"&&e.target.id==="qIn")document.querySelector('[data-act="qadd"]').click();});
 function bind(e){const el=e.target;if(!el.dataset||!el.dataset.bind)return;const[col,key,f]=el.dataset.bind.split("|");
-  if(col==="root")S[f]=el.value;else if(col==="doctor")S.doctor[f]=el.value;else{S[col][key]=S[col][key]||{};S[col][key][f]=el.value;}saveSoon();}
+  if(col==="root")S[f]=el.value;else if(col==="doctor")S.doctor[f]=el.value;else{S[col][key]=S[col][key]||{};S[col][key][f]=el.value;if(col==="days"&&f==="next")delete S[col][key].nextCarry;}saveSoon();}
 document.addEventListener("change",e=>{if(e.target.id==="impFile"&&e.target.files&&e.target.files[0]){const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(e.target.files[0]);}});
 document.addEventListener("input",bind);document.addEventListener("change",bind);
 try{const t=localStorage.getItem(KEY+".theme");if(t&&t!=="auto")document.documentElement.setAttribute("data-theme",t);}catch(e){}
